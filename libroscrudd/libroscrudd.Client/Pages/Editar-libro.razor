@@ -1,0 +1,70 @@
+﻿@page "/editar-libro/{id:int}"
+@using libroscrudd.Client.Servicios
+@using libroscrudd.Shared
+@inject LibrosService LibrosService
+@inject NavigationManager NavigationManager
+
+<h3>Editar Libro</h3>
+
+@if (libro == null)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <EditForm Model="libro" OnValidSubmit="GuardarCambios">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="form-group">
+            <label for="titulo">Título</label>
+            <InputText id="titulo" class="form-control" @bind-Value="libro.Titulo" />
+        </div>
+
+        <div class="form-group">
+            <label for="autor">Autor</label>
+            <InputText id="autor" class="form-control" @bind-Value="libro.Autor" />
+        </div>
+
+        <div class="form-group">
+            <label for="anioPublicacion">Año de Publicación</label>
+            <InputNumber id="anioPublicacion" class="form-control" @bind-Value="libro.AnioPublicacion" />
+        </div>
+
+        <div class="form-group">
+            <label for="editorial">Editorial</label>
+            <InputText id="editorial" class="form-control" @bind-Value="libro.Editorial" />
+        </div>
+
+        <button type="submit" class="btn btn-success">Guardar Cambios</button>
+        <button type="button" class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public int id { get; set; }
+
+    private LibroDTO libro;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Obtén el libro por su ID
+        libro = await LibrosService.GetLibroAsync(id);
+    }
+
+    private async Task GuardarCambios()
+    {
+        if (libro != null)
+        {
+            await LibrosService.UpdateLibroAsync(libro);
+            // Redirigir a la página de lista después de guardar los cambios
+            NavigationManager.NavigateTo("/lista-libros");
+        }
+    }
+
+    private void Cancelar()
+    {
+        // Redirigir a la página de lista si el usuario cancela
+        NavigationManager.NavigateTo("/lista-libros");
+    }
+}

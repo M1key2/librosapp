@@ -1,0 +1,211 @@
+﻿@page "/lista-libros"
+@using libroscrudd.Client.Servicios
+@using libroscrudd.Shared
+@inject LibrosService LibrosService
+
+<h3>Lista de Libros</h3>
+
+<!-- Botón para abrir el formulario de agregar libro -->
+<button class="btn btn-primary" @onclick="MostrarFormularioAgregar">Agregar Libro</button>
+
+<!-- Tabla de libros -->
+<table class="table mt-3">
+    <thead>
+        <tr>
+            <th>Título</th>
+            <th>Autor</th>
+            <th>Año de Publicación</th>
+            <th>Editorial</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (libros != null)
+        {
+            @foreach (var libro in libros)
+            {
+                <tr>
+                    <td>@libro.Titulo</td>
+                    <td>@libro.Autor</td>
+                    <td>@libro.AnioPublicacion</td>
+                    <td>@libro.Editorial</td>
+                    <td>
+                        <a class="btn btn-warning" href="/editar-libro/@libro.Id">Editar</a>
+                        <button class="btn btn-danger" @onclick="() => EliminarLibro(libro.Id)">Eliminar</button>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr><td colspan="5">Cargando libros...</td></tr>
+        }
+    </tbody>
+</table>
+
+<!-- Formulario de agregar libro -->
+@if (mostrarFormulario)
+{
+    <div class="mt-3">
+        <h4>Agregar Nuevo Libro</h4>
+        <EditForm Model="nuevoLibro" OnValidSubmit="AgregarLibro">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="form-group">
+                <label for="titulo">Título</label>
+                <InputText id="titulo" class="form-control" @bind-Value="nuevoLibro.Titulo" />
+            </div>
+
+            <div class="form-group">
+                <label for="autor">Autor</label>
+                <InputText id="autor" class="form-control" @bind-Value="nuevoLibro.Autor" />
+            </div>
+
+            <div class="form-group">
+                <label for="anioPublicacion">Año de Publicación</label>
+                <InputNumber id="anioPublicacion" class="form-control" @bind-Value="nuevoLibro.AnioPublicacion" />
+            </div>
+
+            <div class="form-group">
+                <label for="editorial">Editorial</label>
+                <InputText id="editorial" class="form-control" @bind-Value="nuevoLibro.Editorial" />
+            </div>
+
+            <button type="submit" class="btn btn-success">Agregar Libro</button>
+            <button type="button" class="btn btn-secondary" @onclick="OcultarFormulario">Cancelar</button>
+        </EditForm>
+    </div>
+}
+
+<!-- Formulario de editar libro -->
+@if (libroEditando != null)
+{
+    <div class="mt-3">
+        <h4>Editar Libro</h4>
+        <EditForm Model="libroEditando" OnValidSubmit="ActualizarLibro">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="form-group">
+                <label for="titulo">Título</label>
+                <InputText id="titulo" class="form-control" @bind-Value="libroEditando.Titulo" />
+            </div>
+
+            <div class="form-group">
+                <label for="autor">Autor</label>
+                <InputText id="autor" class="form-control" @bind-Value="libroEditando.Autor" />
+            </div>
+
+            <div class="form-group">
+                <label for="anioPublicacion">Año de Publicación</label>
+                <InputNumber id="anioPublicacion" class="form-control" @bind-Value="libroEditando.AnioPublicacion" />
+            </div>
+
+            <div class="form-group">
+                <label for="editorial">Editorial</label>
+                <InputText id="editorial" class="form-control" @bind-Value="libroEditando.Editorial" />
+            </div>
+
+            <button type="submit" class="btn btn-warning">Guardar Cambios</button>
+            <button type="button" class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
+        </EditForm>
+    </div>
+}
+
+@code {
+    private List <LibroDTO> libros;
+    private bool mostrarFormulario = false;
+    private LibroDTO nuevoLibro = new LibroDTO();
+    private LibroDTO libroEditando = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            libros = await LibrosService.GetLibrosAsync();
+        }
+        catch (Exception ex)
+        {
+            // Manejo de errores si no se pueden obtener los libros
+            Console.WriteLine($"Error al cargar libros: {ex.Message}");
+        }
+    }
+
+    private async Task EliminarLibro(int id)
+    {
+        try
+        {
+            await LibrosService.DeleteLibroAsync(id);
+            libros = await LibrosService.GetLibrosAsync();  // Recarga la lista de libros
+        }
+        catch (Exception ex)
+        {
+            // Manejo de errores al eliminar un libro
+            Console.WriteLine($"Error al eliminar libro: {ex.Message}");
+        }
+    }
+
+    private void MostrarFormularioAgregar()
+    {
+        mostrarFormulario = true;
+    }
+
+    private void OcultarFormulario()
+    {
+        mostrarFormulario = false;
+    }
+
+    private void EditarLibro(LibroDTO libro)
+    {
+        libroEditando = new LibroDTO
+            {
+                Id = libro.Id,
+                Titulo = libro.Titulo,
+                Autor = libro.Autor,
+                AnioPublicacion = libro.AnioPublicacion,
+                Editorial = libro.Editorial
+            };
+    }
+
+    private void CancelarEdicion()
+    {
+        libroEditando = null;
+    }
+
+    private async Task AgregarLibro()
+    {
+        try
+        {
+            if (nuevoLibro != null)
+            {
+                await LibrosService.AddLibroAsync(nuevoLibro);
+                libros = await LibrosService.GetLibrosAsync();  // Actualiza la lista de libros
+                OcultarFormulario();  // Oculta el formulario después de agregar
+            }
+        }
+        catch (Exception ex)
+        {
+            // Manejo de errores al agregar libro
+            Console.WriteLine($"Error al agregar libro: {ex.Message}");
+        }
+    }
+
+    private async Task ActualizarLibro()
+    {
+        try
+        {
+            if (libroEditando != null)
+            {
+                await LibrosService.UpdateLibroAsync(libroEditando);
+                libros = await LibrosService.GetLibrosAsync();  // Actualiza la lista de libros
+                libroEditando = null;  // Limpiar la variable de libro en edición
+            }
+        }
+        catch (Exception ex)
+        {
+            // Manejo de errores al editar libro
+            Console.WriteLine($"Error al editar libro: {ex.Message}");
+        }
+    }
+}
